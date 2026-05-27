@@ -81,15 +81,6 @@ DESCRIBE SHARE OB_DEMO_TPO_SCORECARD_SHARE;
 SHOW SCHEMAS LIKE 'LENDER_VIEWS' IN DATABASE OPTIMAL_BLUE_DEMO;
 SELECT COUNT(*) AS lender_view_rows FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;
 
--- ---------------------------------------------------------------------
--- V7: SI semantic view
--- ---------------------------------------------------------------------
-SELECT * FROM SEMANTIC_VIEW(
-    OPTIMAL_BLUE_DEMO.AI.TPO_PERFORMANCE_SV
-    DIMENSIONS risk_tier
-    METRICS    tpo_count, avg_compliance_score, avg_pull_through, total_funded_volume
-);
-
 -- =====================================================================
 -- LENDER DENIAL CHECK
 -- Run the next block in a SECOND Snowsight tab as OB_DEMO_LENDER.

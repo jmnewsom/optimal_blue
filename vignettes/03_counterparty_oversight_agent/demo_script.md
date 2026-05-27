@@ -1,7 +1,6 @@
 # V3 - Counterparty Oversight Agent demo script
 
-Run these prompts live in Snowsight's Agent Run UI (or in Snowflake
-Intelligence once V7 is in place).
+Run these prompts live in Snowsight's Agent Run UI.
 
 ## The five money prompts
 

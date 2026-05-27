@@ -138,20 +138,7 @@ Expect: SiS URL returned. Open it; all 6 KPI cards populated.
 If columns appear NULL: check that V4 ran successfully (KPI #5 reads
 `SHARED.TPO_PERFORMANCE_V`).
 
-## 8. V7 - Snowflake Intelligence capstone
-
-```sql
--- as OB_DEMO_RW @ OB_DEMO_AI_WH
-@vignettes/07_snowflake_intelligence/07_tpo_performance_si_semantic_view.sql
-```
-
-Expect: `AI.TPO_PERFORMANCE_SV` created. Final SELECT returns 3
-rows (HIGH/MED/LOW risk_tier) with KPIs.
-
-In Snowsight: AI & ML -> Snowflake Intelligence -> create workspace,
-add `AI.COUNTERPARTY_AGENT`, the two SVs, the search service.
-
-## 9. Run smoke_test.sql
+## 8. Run smoke_test.sql
 
 ```sql
 -- as OB_DEMO_RW
@@ -161,7 +148,7 @@ add `AI.COUNTERPARTY_AGENT`, the two SVs, the search service.
 All asserts pass = demo is green. Then run the lender-denial block
 (commented at bottom of smoke_test.sql) in a second tab as OB_DEMO_LENDER.
 
-## 10. Defect log template
+## 9. Defect log template
 
 Copy this into `tests/defects.md` if anything fails:
 

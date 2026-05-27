@@ -28,8 +28,7 @@ showing Cortex Code-built artifacts solving Comergence's daily problems
 | 0:55 | V3 generate + run + 5 agent prompts (centerpiece) | `cortex-agent` skill | `03_counterparty_oversight_agent.sql` |
 | 1:15 | V4 generate + `sql-verify` subagent + run (the cross-org "aha") | `sql-author` + `sql-verify` | `04_tpo_performance_views.sql` |
 | 1:30 | V5 generate + run producer; role-switch tab as `OB_DEMO_LENDER`; query consumer | `declarative-sharing` | `05_tpo_scorecard_share.sql` |
-| 1:42 | V6 open SiS URL; Cortex Code explains a code block | `developing-with-streamlit-in-snowflake` | (pre-deployed) |
-| 1:50 | V7 generate + run; assemble SI workspace; closing prompts | `cortex-agent` + SI | `07_tpo_performance_si_semantic_view.sql` |
+| 1:42 | V6 open SiS URL; Cortex Code explains a code block; close on cross-org dashboard | `developing-with-streamlit-in-snowflake` | (pre-deployed) |
 | 1:55 | Recap + trial handoff: "clone the repo, mount as Workspace, rerun" | - | - |
 
 ## What Shawnee should walk away with

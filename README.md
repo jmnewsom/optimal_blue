@@ -37,7 +37,6 @@ optimal_blue/
     04_cross_org_bridge/                # TPO performance + lock pull-through
     05_solution_center_marketplace/     # Snowflake share + simulated lender
     06_streamlit_dashboard/             # SiS counterparty risk dashboard
-    07_snowflake_intelligence/          # SI capstone
   docs/
     demo_runbook.md
     cortex_code_talktrack.md
@@ -59,7 +58,6 @@ optimal_blue/
 | V4 | Cross-org Bridge | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` (SECURE) |
 | V5 | Marketplace share + simulated consumer | `OB_DEMO_TPO_SCORECARD_SHARE`, `LENDER_VIEWS.TPO_SCORECARD` |
 | V6 | Streamlit dashboard | SiS app `OB_COMERGENCE_DASHBOARD` |
-| V7 | Snowflake Intelligence capstone | `AI.TPO_PERFORMANCE_SV` |
 
 ## Conventions
 

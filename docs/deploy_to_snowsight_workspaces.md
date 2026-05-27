@@ -140,10 +140,6 @@ optimalblue-demo
       app.py
       requirements.txt
       06_streamlit_dashboard_deploy.sql
-    07_snowflake_intelligence/
-      prompt-contract.md
-      07_tpo_performance_si_semantic_view.sql
-      talk_track.md
 ```
 
 Open the Cortex Code panel (right side). Type:

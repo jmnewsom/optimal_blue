@@ -35,7 +35,6 @@ flowchart LR
 | V4 | `vignettes/04_cross_org_bridge/prompt-contract.md` | `04_tpo_performance_views.sql` | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` |
 | V5 | `vignettes/05_solution_center_marketplace/prompt-contract.md` | `05_tpo_scorecard_share.sql` | `OB_DEMO_TPO_SCORECARD_SHARE` + `OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD` |
 | V6 | `vignettes/06_streamlit_dashboard/prompt-contract.md` | (pre-deployed; explained live) | SiS app `OB_COMERGENCE_DASHBOARD` |
-| V7 | `vignettes/07_snowflake_intelligence/prompt-contract.md` | `07_tpo_performance_si_semantic_view.sql` | `AI.TPO_PERFORMANCE_SV` + SI workspace |
 
 ## The loop, every vignette
 

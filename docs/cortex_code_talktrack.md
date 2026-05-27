@@ -36,24 +36,18 @@ me whether the join risks fanout."
 same workspace, but now I only see what a lender consumer of the share
 sees. Watch the source tables disappear."
 
-### Beat 6 - SI handoff (V7)
-"Cortex Code was the build surface. Snowflake Intelligence is the
-business surface. Same governed objects under both - no rewrite, no
-re-grant, no re-modeling."
-
-### Beat 7 - The close
+### Beat 6 - The close
 "Take this workspace. Open Cortex Code on your trial. Type
 `@infrastructure/prompt-contract.md` and say 'recreate this in my
 trial.' In about ten minutes you have what we just walked through."
 
 ## Snowsight surfaces to use
 
-- **Worksheets** with Cortex Code side panel: V1, V2, V3, V4, V5, V7 SQL.
+- **Worksheets** with Cortex Code side panel: V1, V2, V3, V4, V5 SQL.
 - **Workspaces / Projects**: open `optimalblue-demo/` so all contracts and
   SQL are visible to Cortex Code via `@`-mentions.
 - **Streamlit-in-Snowflake editor**: V6 - open `app.py` and let Cortex Code
   explain a chart block.
-- **Snowflake Intelligence**: V7 capstone.
 - **Role switcher** (top right): V5 producer/consumer split.
 
 ## Things to NOT skip

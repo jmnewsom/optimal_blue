@@ -66,7 +66,7 @@ text in the same response.
 ```sql
 DESCRIBE AGENT AI.COUNTERPARTY_AGENT;
 ```
-Then open the agent in Snowsight (or Snowflake Intelligence after V7)
+Then open the agent in Snowsight (Agent Run UI)
 and run the 5 prompts in `demo_script.md`. >=4/5 should be acceptable.
 
 ### 5. Recovery move
