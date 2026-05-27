@@ -49,16 +49,24 @@ that Shawnee asked about is operationalized here.
 - Grants to both lender roles
 
 ## Acceptance criteria
-- Provider side: 1 share, 1 RAP, 1 LENDER_VIEWS schema with 1 view.
+- Provider side: 1 share with exactly 3 listed objects via
+  `DESCRIBE SHARE` (DATABASE + SCHEMA + VIEW = the SECURE
+  `SHARED.TPO_SCORECARD_V`); 1 RAP; 1 LENDER_VIEWS schema with 1 view.
 - `OB_DEMO_LENDER_BIG` (with `USE SECONDARY ROLES NONE`):
-  - SELECT against `LENDER_VIEWS.TPO_SCORECARD` returns > 0 rows
-  - `MIN(funded_volume_usd)` > 500,000
+  - SELECT against `LENDER_VIEWS.TPO_SCORECARD` returns ~21,981 rows
+    (live verified on `WWC76537`)
+  - `MIN(funded_volume_usd)` > 500,000 (live: $504,365)
   - SELECT against `COMERGENCE.TPO` denied
 - `OB_DEMO_LENDER_SMALL` (with `USE SECONDARY ROLES NONE`):
-  - SELECT against `LENDER_VIEWS.TPO_SCORECARD` returns > 0 rows
-  - `DISTINCT state_code` returns only `{'CA'}`
+  - SELECT against `LENDER_VIEWS.TPO_SCORECARD` returns ~456 rows
+  - `DISTINCT state_code` returns only `{'CA'}` (1 distinct value)
   - SELECT against `COMERGENCE.TPO` denied
 - BIG row count > SMALL row count > 0 (proves different slices).
+- Re-running the SQL is idempotent: detach -> replace -> reattach pattern
+  for the RAP (DEFECT-12 fix).
+- `OB_DEMO_RW` must have `CREATE ROW ACCESS POLICY` on SHARED schema -
+  this is granted in `infrastructure/00_setup_db_roles_wh.sql` after
+  DEFECT-11.
 
 ## Cortex Code talk track (live demo - 5-block runbook)
 
@@ -80,12 +88,14 @@ that Shawnee asked about is operationalized here.
 > OB_DEMO_LENDER_SMALL roles.
 
 ### 3. Expected output
-- File `05_tpo_scorecard_share.sql`, ~90 lines
+- File `05_tpo_scorecard_share.sql`, ~95 lines
 - `CREATE OR REPLACE SHARE OB_DEMO_TPO_SCORECARD_SHARE` + grants on share
 - `CREATE SCHEMA OPTIMAL_BLUE_DEMO.LENDER_VIEWS` (idempotent)
 - `CREATE OR REPLACE VIEW OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD`
-- `CREATE OR REPLACE ROW ACCESS POLICY SHARED.TPO_SCORECARD_RAP AS (state_code VARCHAR, funded_volume_usd NUMBER) RETURNS BOOLEAN -> CASE ...`
-- `ALTER VIEW ... ADD ROW ACCESS POLICY SHARED.TPO_SCORECARD_RAP ON (state_code, funded_volume_usd)`
+- IDEMPOTENT RAP PATTERN (DEFECT-12 - binding):
+  1. `ALTER VIEW IF EXISTS OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD DROP ALL ROW ACCESS POLICIES;`
+  2. `CREATE OR REPLACE ROW ACCESS POLICY SHARED.TPO_SCORECARD_RAP AS (state_code VARCHAR, funded_volume_usd NUMBER) RETURNS BOOLEAN -> CASE ...`
+  3. `ALTER VIEW ... ADD ROW ACCESS POLICY SHARED.TPO_SCORECARD_RAP ON (state_code, funded_volume_usd)`
 - Grants for BOTH `OB_DEMO_LENDER_BIG` and `OB_DEMO_LENDER_SMALL`
 - IMPORTANT: do NOT use `CREATE DATABASE FROM SHARE` (Snowflake forbids
   same-account consumption)
@@ -96,8 +106,8 @@ In Snowsight tab #1 as `OB_DEMO_LENDER_BIG`:
 USE ROLE OB_DEMO_LENDER_BIG;
 USE SECONDARY ROLES NONE;
 USE WAREHOUSE OB_DEMO_LENDER_WH;
-SELECT COUNT(*)               FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- ~11K
-SELECT MIN(funded_volume_usd) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- > 500000
+SELECT COUNT(*)               FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- ~21,981
+SELECT MIN(funded_volume_usd) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- > 500000 (live: $504,365)
 SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                           -- denied
 ```
 In Snowsight tab #2 as `OB_DEMO_LENDER_SMALL`:
@@ -105,12 +115,12 @@ In Snowsight tab #2 as `OB_DEMO_LENDER_SMALL`:
 USE ROLE OB_DEMO_LENDER_SMALL;
 USE SECONDARY ROLES NONE;
 USE WAREHOUSE OB_DEMO_LENDER_WH;
-SELECT COUNT(*)            FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- ~432
+SELECT COUNT(*)            FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- ~456
 SELECT DISTINCT state_code FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- only 'CA'
 SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                            -- denied
 ```
 
-The two count contrast is the demo punchline.
+The two count contrast (21,981 vs 456) is the demo punchline.
 
 After the verification, narrate: "If I went back to the producer side
 and changed a TPO's compliance_score right now, both lenders would see

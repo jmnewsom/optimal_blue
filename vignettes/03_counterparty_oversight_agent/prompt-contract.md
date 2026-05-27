@@ -54,8 +54,13 @@ a live audit and were verified deployed:
 9. Tool-routing rules organized inside `instructions.response` with
    trigger-word hints. Note: `orchestration: {}` MUST stay empty -
    nested `orchestration.instructions` is rejected by Snowflake.
-10. SQL file ends with a 6-prompt eval block (5 happy-path + 1 refusal)
-    the SE runs in the Snowsight Agent Run UI after deploy.
+10. SQL file ends with a 6-prompt programmatic eval block using
+    `SNOWFLAKE.CORTEX.DATA_AGENT_RUN(<agent_fqn>, $$<body>$$)` (5 happy-path
+    + 1 refusal). The function name is `DATA_AGENT_RUN`, NOT `AGENT_RUN`
+    (the latter is for inline agents without an object). The request body
+    MUST be a `$$...$$` literal; do NOT include `thread_id` or
+    `parent_message_id` on a fresh thread (Snowflake rejects with
+    `Thread 0 does not exist or not authorized`). Verified live: 6/6 pass.
 
 ## Inputs (FQNs)
 - `OPTIMAL_BLUE_DEMO.AI.TPO_RISK_SV` (V1)
@@ -102,8 +107,11 @@ a live audit and were verified deployed:
 ```sql
 DESCRIBE AGENT AI.COUNTERPARTY_AGENT;
 ```
-Then open the agent in Snowsight (Agent Run UI) and run the 5 prompts in
-`demo_script.md` plus 1 out-of-scope refusal prompt. >=5/6 should be acceptable.
+Then execute the 6-prompt eval block at the bottom of
+`03_counterparty_oversight_agent.sql` (uses `DATA_AGENT_RUN`) - or run
+the same prompts in the Snowsight Agent Run UI. Live verified: 6/6 pass
+(5 happy-path routed to expected tools, 1 refusal cited scope and offered
+in-scope alternatives).
 
 ### 5. Recovery move
 Open `03_counterparty_oversight_agent.sql` in this folder and run it.
