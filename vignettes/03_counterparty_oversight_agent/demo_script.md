@@ -24,6 +24,11 @@ Run these prompts live in Snowsight's Agent Run UI.
    *"Which onboarding stage is slowest on average, and which 5 TPOs are stuck there longest?"*
    Expected: agent uses `TPO_RISK_SV` for the metric and follow-up SQL.
 
+6. **Out-of-scope refusal** -
+   *"What rate should I lock today on a 30-year FHA in Texas?"*
+   Expected: agent politely declines (this is a PPE / capital markets
+   question, not a Comergence oversight question), suggests reframing.
+
 ## Talk-track moments
 
 - After prompt 2: highlight that the agent is citing real chunk titles -
@@ -31,3 +36,5 @@ Run these prompts live in Snowsight's Agent Run UI.
 - After prompt 4: note that we never wrote SQL by hand - the analyst tool
   generated the per-TPO finding lookup from the semantic view. Same
   governed metrics, no extra plumbing.
+- After prompt 6: show the refusal as proof of guardrails - "this is how
+  enterprise agents stay in their lane."
