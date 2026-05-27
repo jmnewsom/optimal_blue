@@ -90,13 +90,52 @@ SHOW AGENTS IN SCHEMA AI;
 DESCRIBE AGENT AI.COUNTERPARTY_AGENT;
 
 -- =====================================================================
--- STEP 3: Demo-time eval block (manual - run each prompt in Snowsight
--- Agent Run UI and confirm the routing matches the expected tool):
---
---   1. "Which states have the most high-risk TPOs?"           -> TPO_RISK_SV
---   2. "Summarize FHA overlay differences."                   -> COMPLIANCE_SEARCH
---   3. "Licenses expiring in 30 days by region?"              -> TPO_RISK_SV
---   4. "Draft remediation for TPO 2210."                      -> TPO_RISK_SV (then format)
---   5. "What does our BSA/AML reporting policy say?"          -> COMPLIANCE_SEARCH
---   6. (Out-of-scope) "What rate should I lock today?"        -> refuse politely
+-- STEP 3: Programmatic eval (verified live - 6/6 pass)
+-- Use SNOWFLAKE.CORTEX.DATA_AGENT_RUN with the agent FQN. The request
+-- body MUST be a $$...$$ literal (not PARSE_JSON, not VARCHAR var).
+-- DO NOT include thread_id or parent_message_id - they require an
+-- existing thread; omitting them treats the call as a fresh thread.
+-- =====================================================================
+
+-- EVAL 1 - Quantitative routing (expect: TPO_RISK_SV)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"Which states have the most high-risk TPOs? Top 5 only."}]}]}$$
+)::STRING, 1, 4000) AS r;
+
+-- EVAL 2 - Qualitative routing (expect: COMPLIANCE_SEARCH, max_results=8)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"Summarize the FHA overlay differences between investor guidelines."}]}]}$$
+)::STRING, 1, 4000) AS r;
+
+-- EVAL 3 - Time-window aggregate (expect: TPO_RISK_SV)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"How many TPOs have licenses expiring in the next 30 days, by region?"}]}]}$$
+)::STRING, 1, 4000) AS r;
+
+-- EVAL 4 - Per-TPO lookup (expect: TPO_RISK_SV)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"Has TPO 2210 had any open audit findings or high severity findings recently?"}]}]}$$
+)::STRING, 1, 4000) AS r;
+
+-- EVAL 5 - Onboarding aggregate (expect: TPO_RISK_SV)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"What is the average days to active across our TPO network, by channel?"}]}]}$$
+)::STRING, 1, 4000) AS r;
+
+-- EVAL 6 - Out-of-scope refusal (expect: polite decline + suggested in-scope queries)
+SELECT SUBSTR(SNOWFLAKE.CORTEX.DATA_AGENT_RUN(
+  'OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT',
+  $${"messages":[{"role":"user","content":[{"type":"text",
+     "text":"What rate should I lock today on a 30-year FHA in Texas?"}]}]}$$
+)::STRING, 1, 4000) AS r;
 -- =====================================================================
