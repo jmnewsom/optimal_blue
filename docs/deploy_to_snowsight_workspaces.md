@@ -47,9 +47,17 @@ CREATE OR REPLACE API INTEGRATION ob_demo_git_api
 
 ## Step 2 - Create the Git repository object
 
+`GIT REPOSITORY` is a schema-level object, so you must set an active
+database + schema before `CREATE GIT REPOSITORY`. We'll house it in
+`OPTIMAL_BLUE_DEMO.AI` (created by `infrastructure/00_setup_db_roles_wh.sql`).
+
 ### Public repo - no `GIT_CREDENTIALS`
 
 ```sql
+USE ROLE OB_DEMO_ADMIN;
+USE DATABASE OPTIMAL_BLUE_DEMO;
+USE SCHEMA   AI;
+
 CREATE OR REPLACE GIT REPOSITORY OB_DEMO_REPO
     API_INTEGRATION = ob_demo_git_api
     ORIGIN = 'https://github.com/jmnewsom/optimal_blue.git';
@@ -61,6 +69,10 @@ LIST @OB_DEMO_REPO/branches/main/;
 ### Private repo - reference
 
 ```sql
+USE ROLE ACCOUNTADMIN;       -- needs USAGE on the secret
+USE DATABASE OPTIMAL_BLUE_DEMO;
+USE SCHEMA   AI;
+
 CREATE OR REPLACE GIT REPOSITORY OB_DEMO_REPO
     API_INTEGRATION = ob_demo_git_api
     GIT_CREDENTIALS = ob_demo_git_token
