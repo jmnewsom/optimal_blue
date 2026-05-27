@@ -34,7 +34,7 @@ flowchart LR
 | V3 | `vignettes/03_counterparty_oversight_agent/prompt-contract.md` | `03_counterparty_oversight_agent.sql` | `AI.COUNTERPARTY_AGENT` |
 | V4 | `vignettes/04_cross_org_bridge/prompt-contract.md` | `04_tpo_performance_views.sql` | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` |
 | V5 | `vignettes/05_solution_center_marketplace/prompt-contract.md` | `05_tpo_scorecard_share.sql` | `OB_DEMO_TPO_SCORECARD_SHARE` + `LENDER_VIEWS.TPO_SCORECARD` + RAP, served to 2 lender personas |
-| V6 | `vignettes/06_streamlit_dashboard/prompt-contract.md` | (pre-deployed; explained live) | SiS app `OB_COMERGENCE_DASHBOARD` |
+| V6 | `vignettes/06_streamlit_dashboard/prompt-contract.md` | (pre-deployed; explained live) | SiS app `OB_COMERGENCE_DASHBOARD` (AI insight + sparkline KPIs + US map + report card + agent bubble) |
 
 ## The loop, every vignette
 

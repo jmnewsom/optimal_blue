@@ -1,72 +1,106 @@
 ---
 id: 06_streamlit_dashboard
 inherits: ../../infrastructure/prompt-contract.md
-depends_on: [04_cross_org_bridge]
+depends_on: [04_cross_org_bridge, 03_counterparty_oversight_agent]
 role: OB_DEMO_RW
 warehouse: OB_DEMO_WH
 database: OPTIMAL_BLUE_DEMO
 schema: AI
 output_files: [app.py, requirements.txt, 06_streamlit_dashboard_deploy.sql]
-est_runtime_min: 4
+est_runtime_min: 5
 cortex_code_skills: [developing-with-streamlit-in-snowflake]
 ---
 
-# V6 - Streamlit Counterparty Risk Dashboard
+# V6 - Streamlit Counterparty Risk Dashboard (Wow Edition)
 
 ## Goal
-Deploy a Streamlit-in-Snowflake (SiS) app branded for Optimal Blue that
-surfaces every Comergence + cross-org KPI in one screen, with drill-through
-to a single TPO. This is the "this is your team's daily tool" moment.
+Deploy a Streamlit-in-Snowflake app branded for Optimal Blue that
+showcases six wow-factor blocks on a single scrollable page, all built
+from a single prompt contract. This is the "this is your team's daily
+tool" moment - an analytics dashboard a Cortex Code prompt produced.
 
-## KPIs (top row metric cards)
-- TPOs in good standing (status=ACTIVE AND compliance_score >= 80)
-- Open high-severity findings
-- Licenses expiring in 30 days
-- Social posts flagged HIGH (last 7d)
-- Average pull-through %
-- Funded volume (last 30d, USD)
+## Six wow blocks (binding)
 
-## Charts
-- Findings by region (bar)
-- Compliance score vs pull-through (scatter, color = risk_tier)
-- Onboarding funnel (avg duration_days per stage, bar)
-- Social-flag trend (last 30d daily, line)
+1. **AI "Today's Insight" hero** - calls `SNOWFLAKE.CORTEX.AI_COMPLETE`
+   on top open findings + risky regions and renders a one-paragraph
+   executive summary. Cached `ttl=600`.
+2. **6 KPI cards with 30-day sparklines** beneath each value
+   (Good Standing / Hi-Sev Findings / Lic Exp 30d / Social Flags 7d /
+   Avg Pull-through / Funded 30d).
+3. **Interactive US choropleth map** of high-risk TPOs by state, OB
+   navy -> magenta gradient, hover shows TPO totals + suspended counts.
+   Uses `plotly.express.choropleth(locationmode='USA-states')`.
+4. **Companion charts**: Findings by Region (bar), Compliance Score
+   vs Pull-through (sized scatter), Onboarding Funnel (bar), Social
+   Trend (gradient area).
+5. **TPO Report Card** drill-through with status pills, big numbers
+   (compliance score / pull-through / open findings / funded volume),
+   recent audit findings + recent social flags.
+6. **Floating "Ask the Agent" bubble** bottom-right opens an
+   `@st.dialog` chat that calls
+   `SNOWFLAKE.CORTEX.DATA_AGENT_RUN('OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT', ...)`
+   and renders the response text + tools used.
 
-## Drill-through
-- TPO selector -> shows audit history, social flags, lock metrics, score.
+## Theme (binding)
+- Dark glass-morph over Optimal Blue navy gradient
+- Magenta `#E6007E` accents, amber `#F4B400` warnings, green `#1F8A4C`
+  good-standing
+- Translucent cards with `backdrop-filter: blur(12px)` borders
+- Animated LIVE pulse indicator in hero
+- Hover lift on KPI cards (`translateY(-2px)` + magenta glow)
+
+## Inputs
+- V1: `OPTIMAL_BLUE_DEMO.AI.TPO_RISK_SV` (indirect, via fact tables)
+- V2: `OPTIMAL_BLUE_DEMO.COMERGENCE.SOCIAL_FLAG`
+- V3: `OPTIMAL_BLUE_DEMO.AI.COUNTERPARTY_AGENT` (agent chat)
+- V4: `OPTIMAL_BLUE_DEMO.SHARED.TPO_PERFORMANCE_V`
+- Cortex AI: `AI_COMPLETE`, `DATA_AGENT_RUN`
 
 ## Deliverables
-- `app.py` (Snowflake-flavored Streamlit, OB navy/magenta accent)
-- `requirements.txt`
-- `deploy.sql` (snow streamlit deploy convenience SQL)
+- `app.py` (~450 lines, all 6 wow blocks)
+- `requirements.txt` (streamlit / snowpark / pandas / altair / plotly)
+- `06_streamlit_dashboard_deploy.sql` (stage + CREATE STREAMLIT)
+
+## Acceptance criteria (10-point)
+
+1. App deploys to SiS with `snow streamlit deploy ob_comergence_dashboard --replace`.
+2. Hero renders with non-empty AI insight (cache miss path verified).
+3. 6 KPI cards each with a 30-day sparkline that has > 0 data points.
+4. US choropleth renders with non-zero `high_risk_tpos` for the top 5 states.
+5. All 4 companion charts (findings, score-vs-pt, funnel, social trend) render with data.
+6. TPO selector loads top 200 TPOs; selecting one populates report card with non-empty finding + flag tables.
+7. Floating "Ask the Agent" button visible bottom-right.
+8. Clicking the bubble opens a dialog. Test prompt "Top 5 high-risk states" returns a tool-routed answer including "_Tools used: TPO_RISK_SV_".
+9. Theme: navy gradient bg, magenta accents, glass cards visibly translucent.
+10. App load time < 6s on warm cache, < 12s cold.
 
 ## Cortex Code talk track (live demo - 5-block runbook)
 
-NOTE: V6 is the one vignette where we do NOT live-generate the full
-artifact. `app.py` is too long to safely regenerate on stage. Instead,
-we pre-deploy in pre-flight and use Cortex Code to *explain* the app,
-then open the live SiS URL.
+NOTE: V6 is the one vignette where we don't live-generate the full
+artifact. `app.py` is too long to safely regenerate on stage. We
+pre-deploy in pre-flight and use Cortex Code to *explain* the app
+during the demo.
 
-### 1. Setup (done in pre-flight, NOT live)
-- Pre-flight: `snow streamlit deploy ob_comergence_dashboard --replace`
-  using files in `vignettes/06_streamlit_dashboard/`
-- Confirm SiS URL is reachable as `OB_DEMO_RW`
+### 1. Setup (done in pre-flight)
+- `snow streamlit deploy ob_comergence_dashboard --replace`
+- Confirm SiS URL loads as `OB_DEMO_RW`
 
-### 2. Prompt to paste verbatim (live, for explanation only)
+### 2. Prompt to paste verbatim (live, narration only)
 > @vignettes/06_streamlit_dashboard/app.py
-> Walk me through the KPI section and the cross-org bridge query that
-> powers "Funded Volume (30d)". Highlight where this app is reading
-> SHARED.TPO_PERFORMANCE_V from V4.
+> Walk me through the AI Today's Insight hero block - which Snowflake
+> function it calls, which tables it reads from, how the cache works,
+> and how a Comergence persona would interpret the output.
 
 ### 3. Expected output
-- A short explanation tying the cards back to V1, V2, V4 outputs
-- No file generation; this is narration
+A short explanation tying the AI_COMPLETE call to V1 + V2 sources and
+the cache_data TTL. No file generation; this is narration.
 
-### 4. Verify
+### 4. Verify (live)
 - Open the deployed SiS URL inline in Snowsight
-- All 6 KPI cards render with non-zero values
-- TPO drill-through populates lock + finding tables
+- Confirm hero insight, 6 KPIs with sparklines, US map, charts, report card
+- Click the bubble; ask "Which states have the most high-risk TPOs?";
+  confirm tool-routed answer cites `TPO_RISK_SV`
 
 ### 5. Recovery move
-If the SiS app fails to load: run `streamlit run app.py` locally with
+If the SiS app fails to load: `streamlit run app.py` locally with
 `SNOWFLAKE_CONNECTION_NAME` set; same UI on localhost.

@@ -57,7 +57,7 @@ optimal_blue/
 | V3 | Counterparty Oversight Agent | `AI.COUNTERPARTY_AGENT` (2 tools) |
 | V4 | Cross-org Bridge | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` (SECURE) |
 | V5 | Marketplace share + multi-tenant RAP | `OB_DEMO_TPO_SCORECARD_SHARE`, `LENDER_VIEWS.TPO_SCORECARD`, `SHARED.TPO_SCORECARD_RAP` |
-| V6 | Streamlit dashboard | SiS app `OB_COMERGENCE_DASHBOARD` |
+| V6 | Streamlit dashboard (Wow Edition) | SiS app `OB_COMERGENCE_DASHBOARD` with AI insight, sparkline KPIs, US map, TPO report card, embedded agent chat |
 
 ## Conventions
 
