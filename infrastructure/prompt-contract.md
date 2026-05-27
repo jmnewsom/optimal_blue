@@ -131,9 +131,31 @@ so live regeneration doesn't reintroduce them:
    short (`'HIGH','MEDIUM','LOW'`) and explain the meaning in the demo
    verbally rather than embedding it in the label string.
 9. To demonstrate role-based denial (V5 lender), the user MUST run
-   `USE SECONDARY ROLES NONE;` after `USE ROLE OB_DEMO_LENDER;` -
-   Snowflake's default `secondary_roles = 'all'` causes the user's
-   other roles to satisfy authorization and the denial won't fire.
+   `USE SECONDARY ROLES NONE;` after `USE ROLE OB_DEMO_LENDER_BIG;` (or
+   `_SMALL`) - Snowflake's default `secondary_roles = 'all'` causes the
+   user's other roles to satisfy authorization and the denial won't fire.
+10. `claude-3-5-sonnet` is NOT available as an AI_COMPLETE model in
+    many Snowflake regions (confirmed unavailable on `WWC76537`). Use
+    `claude-4-sonnet` for any `SNOWFLAKE.CORTEX.AI_COMPLETE` call.
+    Verified working pattern:
+    `SELECT SNOWFLAKE.CORTEX.AI_COMPLETE('claude-4-sonnet', '<prompt>')`.
+11. `TABLE(GENERATOR(ROWCOUNT => N))` cross-joined with `SEQ4()` in
+    a WHERE clause does NOT produce one row per generated value -
+    `SEQ4()` is bound to the generator's row context, so referencing
+    it outside a SELECT against the generator returns 0 rows. Don't
+    use this pattern for "next 30 days" series; use a direct
+    `WHERE expires_at BETWEEN CURRENT_DATE() AND DATEADD('day',30,...)
+    GROUP BY expires_at` instead.
+12. `CREATE OR REPLACE ROW ACCESS POLICY` fails with "cannot be
+    dropped/replaced as it is associated with one or more entities"
+    when the policy is already attached to a view. Idempotent pattern:
+    `ALTER VIEW IF EXISTS <view> DROP ALL ROW ACCESS POLICIES;` then
+    `CREATE OR REPLACE ROW ACCESS POLICY ...;` then re-`ALTER VIEW ...
+    ADD ROW ACCESS POLICY ... ON (...);`.
+13. Snowflake agent spec (`CREATE AGENT ... FROM SPECIFICATION`)
+    rejects nested `orchestration.instructions`. Tool-routing rules
+    must live inside `instructions.response`. The `orchestration`
+    object stays as `{}`.
 
 ## Comment style (binding)
 

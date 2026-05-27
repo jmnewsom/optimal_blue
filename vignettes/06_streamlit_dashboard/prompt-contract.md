@@ -23,10 +23,15 @@ tool" moment - an analytics dashboard a Cortex Code prompt produced.
 
 1. **AI "Today's Insight" hero** - calls `SNOWFLAKE.CORTEX.AI_COMPLETE`
    on top open findings + risky regions and renders a one-paragraph
-   executive summary. Cached `ttl=600`.
+   executive summary. Cached `ttl=600`. **Model: `claude-4-sonnet`**
+   (do NOT use `claude-3-5-sonnet` - unavailable in many regions
+   including `WWC76537`).
 2. **6 KPI cards with 30-day sparklines** beneath each value
    (Good Standing / Hi-Sev Findings / Lic Exp 30d / Social Flags 7d /
-   Avg Pull-through / Funded 30d).
+   Avg Pull-through / Funded 30d). The expiring-licenses sparkline
+   MUST use a direct `GROUP BY expires_at BETWEEN CURRENT_DATE() AND
+   DATEADD('day',30,...)` - a `TABLE(GENERATOR(...))` cross-join with
+   `SEQ4()` returns 0 rows because of scope mismatch.
 3. **Interactive US choropleth map** of high-risk TPOs by state, OB
    navy -> magenta gradient, hover shows TPO totals + suspended counts.
    Uses `plotly.express.choropleth(locationmode='USA-states')`.
