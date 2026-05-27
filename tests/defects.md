@@ -91,8 +91,28 @@ them.
 - Fix: added `CREATE ROW ACCESS POLICY` to the SHARED schema grant block in 00_setup
 - Re-test: pass
 
-## Summary (after V5 redesign)
-- 11 defects discovered total (10 initial deploy + 1 V5 multi-tenant redesign)
+## DEFECT-12 - CREATE OR REPLACE ROW ACCESS POLICY fails when policy is already bound
+- File: `vignettes/05_solution_center_marketplace/05_tpo_scorecard_share.sql`
+- Step: V5 STEP 3 (RAP creation) on a re-run
+- Error: `Policy TPO_SCORECARD_RAP cannot be dropped/replaced as it is associated with one or more entities.`
+- Root cause: V5 SQL was not idempotent - re-running it failed after the first successful deploy because the policy was already attached to LENDER_VIEWS.TPO_SCORECARD
+- Fix: introduced detach -> replace -> reattach pattern. STEP 3 now begins with `ALTER VIEW IF EXISTS OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD DROP ALL ROW ACCESS POLICIES;` before the `CREATE OR REPLACE`, then `ALTER VIEW ... ADD ROW ACCESS POLICY` reattaches.
+- Re-test: pass (full detach -> replace -> reattach -> two-role contrast still 21,981 / 456)
+
+## Summary (after V5 redesign + thorough test)
+- 12 defects discovered total (10 initial deploy + 2 V5 multi-tenant redesign)
 - All fixed in source files
-- V5 redesign verified live: BIG persona sees 21,981 rows (min funded_volume_usd = $504,365), SMALL persona sees 456 rows (all CA), both denied on COMERGENCE.TPO source.
-- Estimated total deploy time on Medium WH: ~6 minutes (most spent on 500K LOCK insert + AISQL on 5K social posts).
+- V5 thorough test results (15 checks):
+  - DESCRIBE SHARE confirms 3 objects (DB + schema + secure view) - no leakage
+  - SHOW ROW ACCESS POLICIES + INFORMATION_SCHEMA.POLICY_REFERENCES confirm RAP bound to LENDER_VIEWS.TPO_SCORECARD on (STATE_CODE, FUNDED_VOLUME_USD)
+  - Admin allowlist branch returns 22,000 rows / 51 states (full visibility)
+  - BIG persona: 21,981 rows, MIN(funded_volume_usd) = $504,365 (filter works)
+  - SMALL persona: 456 rows, 1 distinct state = 'CA' (filter works)
+  - Cross-filter: BIG WHERE state_code='CA' returns 455 with min vol > $500K (RAP applies before WHERE)
+  - SMALL WHERE state_code='TX' returns 0 (RAP filtered)
+  - Cross-tenant overlap: BIG-CA-high-vol = SMALL-CA-high-vol = 455 (consistent)
+  - Lender cannot SHOW TABLES IN COMERGENCE (denied)
+  - Lender cannot DESCRIBE SHARED.TPO_SCORECARD_V (denied)
+  - Lender cannot DELETE from view (denied - read-only)
+  - V5 SQL is now idempotent after DEFECT-12 fix
+- Estimated total deploy time on Medium WH: ~6 minutes

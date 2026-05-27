@@ -62,7 +62,14 @@ CREATE OR REPLACE VIEW OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD AS
 -- STEP 3: ROW ACCESS POLICY - one product, N tenants
 -- Filter logic keys off CURRENT_ROLE() so any number of lender personas
 -- can be onboarded with one ALTER + one GRANT.
+-- IMPORTANT: detach the policy from any existing binding BEFORE replace.
+-- Snowflake refuses CREATE OR REPLACE on a policy with active bindings,
+-- so the idempotent pattern is: detach -> create-or-replace -> reattach.
 -- =====================================================================
+
+-- Detach first if previously bound (idempotent on repeat runs).
+ALTER VIEW IF EXISTS OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD
+    DROP ALL ROW ACCESS POLICIES;
 
 USE SCHEMA SHARED;
 CREATE OR REPLACE ROW ACCESS POLICY SHARED.TPO_SCORECARD_RAP
