@@ -156,6 +156,12 @@ so live regeneration doesn't reintroduce them:
     rejects nested `orchestration.instructions`. Tool-routing rules
     must live inside `instructions.response`. The `orchestration`
     object stays as `{}`.
+14. Reset order matters: a share that references a database blocks
+    `DROP DATABASE` with `Database '<db>' cannot be dropped. It is
+    still shared by N shares...`. Drop the SHARE first (as the share's
+    owning role - typically `OB_DEMO_ADMIN`), then `DROP DATABASE`,
+    then warehouses, then roles. See `docs/reset_demo.sql` for the
+    canonical order.
 
 ## Comment style (binding)
 

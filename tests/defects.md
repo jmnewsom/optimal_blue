@@ -99,20 +99,25 @@ them.
 - Fix: introduced detach -> replace -> reattach pattern. STEP 3 now begins with `ALTER VIEW IF EXISTS OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD DROP ALL ROW ACCESS POLICIES;` before the `CREATE OR REPLACE`, then `ALTER VIEW ... ADD ROW ACCESS POLICY` reattaches.
 - Re-test: pass (full detach -> replace -> reattach -> two-role contrast still 21,981 / 456)
 
-## Summary (after V5 redesign + thorough test)
-- 12 defects discovered total (10 initial deploy + 2 V5 multi-tenant redesign)
+## DEFECT-13 - reset_demo.sql drops DATABASE before SHARE
+- File: `docs/reset_demo.sql`
+- Step: full reset before a clean redeploy
+- Error: `Database 'OPTIMAL_BLUE_DEMO' cannot be dropped. It is still shared by 1 shares, including shares 'OB_DEMO_TPO_SCORECARD_SHARE'.`
+- Root cause: a share that references a database blocks `DROP DATABASE` until the share is dropped first
+- Fix: reordered reset_demo.sql to drop SHARE first (as `OB_DEMO_ADMIN`, the owning role), then DATABASE, then WAREHOUSES, then ROLES. Added explicit `USE ROLE OB_DEMO_ADMIN;` before the share drop.
+- Re-test: pass (live verified during the end-to-end deploy)
+
+## Summary (after end-to-end deploy verification)
+- 13 defects discovered total (10 initial deploy + 2 V5 redesign + 1 reset ordering)
 - All fixed in source files
-- V5 thorough test results (15 checks):
-  - DESCRIBE SHARE confirms 3 objects (DB + schema + secure view) - no leakage
-  - SHOW ROW ACCESS POLICIES + INFORMATION_SCHEMA.POLICY_REFERENCES confirm RAP bound to LENDER_VIEWS.TPO_SCORECARD on (STATE_CODE, FUNDED_VOLUME_USD)
-  - Admin allowlist branch returns 22,000 rows / 51 states (full visibility)
-  - BIG persona: 21,981 rows, MIN(funded_volume_usd) = $504,365 (filter works)
-  - SMALL persona: 456 rows, 1 distinct state = 'CA' (filter works)
-  - Cross-filter: BIG WHERE state_code='CA' returns 455 with min vol > $500K (RAP applies before WHERE)
-  - SMALL WHERE state_code='TX' returns 0 (RAP filtered)
-  - Cross-tenant overlap: BIG-CA-high-vol = SMALL-CA-high-vol = 455 (consistent)
-  - Lender cannot SHOW TABLES IN COMERGENCE (denied)
-  - Lender cannot DESCRIBE SHARED.TPO_SCORECARD_V (denied)
-  - Lender cannot DELETE from view (denied - read-only)
-  - V5 SQL is now idempotent after DEFECT-12 fix
-- Estimated total deploy time on Medium WH: ~6 minutes
+- Final end-to-end deploy on `WWC76537`: ALL GREEN
+  - 1.4M synthetic rows loaded in ~3 minutes
+  - V1 SV smoke: 12 region x risk_tier rows
+  - V2 search service: ACTIVE/ACTIVE, 800 chunks indexed
+  - V3 agent: 6/6 prompts pass via DATA_AGENT_RUN
+  - V4: no fanout (22,000 = 22,000); SECURE scorecard
+  - V5: SHARE has 3 listed objects; RAP bound on (STATE_CODE, FUNDED_VOLUME_USD);
+    LENDER_BIG = 21,988 rows / min vol $570,814 / 51 states;
+    LENDER_SMALL = 456 rows / only 'CA';
+    both denied on COMERGENCE.TPO source
+- Total deploy time on Medium WH: ~6 minutes
