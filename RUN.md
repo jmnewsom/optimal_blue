@@ -22,7 +22,7 @@ flowchart LR
    `02_synthetic_ppe.sql`, `03_load_unstructured.sql`.
 4. Pre-deploy V6 Streamlit: `snow streamlit deploy ob_comergence_dashboard --replace`.
 5. Open this file in Snowsight Workspaces; open Cortex Code panel on the right.
-6. Open a SECOND Snowsight tab logged in as `OB_DEMO_LENDER` for V5.
+6. Open TWO additional Snowsight tabs - one logged in as `OB_DEMO_LENDER_BIG`, one as `OB_DEMO_LENDER_SMALL` (V5 multi-tenant demo).
 
 ## Run order during the call
 
@@ -33,7 +33,7 @@ flowchart LR
 | V2 | `vignettes/02_cortex_search_compliance/prompt-contract.md` | `02_compliance_search_and_aisql.sql` | `AI.COMPLIANCE_CSS` + `COMERGENCE.SOCIAL_FLAG` |
 | V3 | `vignettes/03_counterparty_oversight_agent/prompt-contract.md` | `03_counterparty_oversight_agent.sql` | `AI.COUNTERPARTY_AGENT` |
 | V4 | `vignettes/04_cross_org_bridge/prompt-contract.md` | `04_tpo_performance_views.sql` | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` |
-| V5 | `vignettes/05_solution_center_marketplace/prompt-contract.md` | `05_tpo_scorecard_share.sql` | `OB_DEMO_TPO_SCORECARD_SHARE` + `OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD` |
+| V5 | `vignettes/05_solution_center_marketplace/prompt-contract.md` | `05_tpo_scorecard_share.sql` | `OB_DEMO_TPO_SCORECARD_SHARE` + `LENDER_VIEWS.TPO_SCORECARD` + RAP, served to 2 lender personas |
 | V6 | `vignettes/06_streamlit_dashboard/prompt-contract.md` | (pre-deployed; explained live) | SiS app `OB_COMERGENCE_DASHBOARD` |
 
 ## The loop, every vignette

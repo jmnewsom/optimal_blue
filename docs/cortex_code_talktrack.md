@@ -31,10 +31,13 @@ Skills are how we encode best practices."
 talking. This is how an SE multitasks safely. When it returns, it tells
 me whether the join risks fanout."
 
-### Beat 5 - Role-switch (V5)
-"I'm switching role to `OB_DEMO_LENDER` in Snowsight. Same Cortex Code,
-same workspace, but now I only see what a lender consumer of the share
-sees. Watch the source tables disappear."
+### Beat 5 - Role-switch + multi-tenant (V5)
+"I'm switching role to `OB_DEMO_LENDER_BIG` in Snowsight - same view,
+filtered to high-volume TPOs. Now `OB_DEMO_LENDER_SMALL` - same view,
+filtered to California. **One product. One row-access policy. N tenants.**
+This is how Solution Center scales on Snowflake. And if I changed a TPO's
+compliance_score in the producer side right now, both lenders would see
+it on their next query. No FTP, no batch refresh."
 
 ### Beat 6 - The close
 "Take this workspace. Open Cortex Code on your trial. Type

@@ -2,7 +2,7 @@
 -- tests/smoke_test.sql
 -- Read-only end-to-end assertions for the Optimal Blue / Comergence
 -- demo. Run as OB_DEMO_RW after the full deploy. Then run the
--- "lender denial" block at the bottom by switching to OB_DEMO_LENDER.
+-- "two-role contrast" block at the bottom by switching to OB_DEMO_LENDER_BIG and OB_DEMO_LENDER_SMALL.
 --
 -- Demo passes when:
 --   - All counts and SHOW results return non-empty
@@ -74,25 +74,35 @@ SELECT MIN(compliance_score)  AS min_score,  MAX(compliance_score)  AS max_score
 FROM SHARED.TPO_PERFORMANCE_V;
 
 -- ---------------------------------------------------------------------
--- V5: producer share + simulated consumer schema
+-- V5: producer share + simulated consumer schema + RAP + 2 lender roles
 -- ---------------------------------------------------------------------
+USE ROLE OB_DEMO_ADMIN;
 SHOW SHARES LIKE 'OB_DEMO_TPO_SCORECARD_SHARE';
 DESCRIBE SHARE OB_DEMO_TPO_SCORECARD_SHARE;
 SHOW SCHEMAS LIKE 'LENDER_VIEWS' IN DATABASE OPTIMAL_BLUE_DEMO;
-SELECT COUNT(*) AS lender_view_rows FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;
+SHOW ROW ACCESS POLICIES LIKE 'TPO_SCORECARD_RAP' IN SCHEMA OPTIMAL_BLUE_DEMO.SHARED;
+
+-- Admin sees full set (RAP returns TRUE for OB_DEMO_ADMIN):
+SELECT COUNT(*) AS admin_rows FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- expect: 22000
 
 -- =====================================================================
--- LENDER DENIAL CHECK
--- Run the next block in a SECOND Snowsight tab as OB_DEMO_LENDER.
--- The first SELECT should succeed (~22000 rows). The second should
--- fail with "does not exist or not authorized" - that's the punchline.
--- IMPORTANT: USE SECONDARY ROLES NONE is required because Snowflake
--- defaults to enabling all of the user's available roles for query
--- authorization - without it the SE's user inherits broader access
--- from other roles and the denial won't fire.
+-- TWO-ROLE CONTRAST (the V5 punchline)
+-- Run each block in a separate Snowsight tab. USE SECONDARY ROLES NONE
+-- is REQUIRED so other roles don't leak through and defeat the RAP.
 -- =====================================================================
--- USE ROLE OB_DEMO_LENDER;
+-- Tab 1 (BIG):
+-- USE ROLE OB_DEMO_LENDER_BIG;
 -- USE SECONDARY ROLES NONE;
 -- USE WAREHOUSE OB_DEMO_LENDER_WH;
--- SELECT COUNT(*) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- expect: ~22000
--- SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;             -- expect: denied
+-- SELECT COUNT(*)               FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- ~11K
+-- SELECT MIN(funded_volume_usd) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- > 500000
+-- SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                           -- denied
+--
+-- Tab 2 (SMALL):
+-- USE ROLE OB_DEMO_LENDER_SMALL;
+-- USE SECONDARY ROLES NONE;
+-- USE WAREHOUSE OB_DEMO_LENDER_WH;
+-- SELECT COUNT(*)            FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- ~432
+-- SELECT DISTINCT state_code FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- only 'CA'
+-- SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                            -- denied
+-- =====================================================================

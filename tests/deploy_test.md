@@ -110,20 +110,30 @@ If counts mismatch: a join lost the TPO grain. Re-run sql-verify subagent.
 @vignettes/05_solution_center_marketplace/05_tpo_scorecard_share.sql
 ```
 
-Expect: 1 share, 1 schema (`LENDER_VIEWS`), 1 view (`TPO_SCORECARD`).
+Expect: 1 share, 1 schema (`LENDER_VIEWS`), 1 view (`TPO_SCORECARD`), 1 row-access policy (`SHARED.TPO_SCORECARD_RAP`).
 
-Then in a SECOND Snowsight tab as `OB_DEMO_LENDER`:
+Then in TWO additional Snowsight tabs:
 
 ```sql
-USE ROLE OB_DEMO_LENDER;
+-- Tab 1: high-volume lender persona
+USE ROLE OB_DEMO_LENDER_BIG;
+USE SECONDARY ROLES NONE;
 USE WAREHOUSE OB_DEMO_LENDER_WH;
-SELECT COUNT(*) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- ~22000
-SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;             -- expect: denied
+SELECT COUNT(*)               FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- ~11K
+SELECT MIN(funded_volume_usd) FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;  -- > 500000
+SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                           -- expect: denied
+
+-- Tab 2: California regional lender persona
+USE ROLE OB_DEMO_LENDER_SMALL;
+USE SECONDARY ROLES NONE;
+USE WAREHOUSE OB_DEMO_LENDER_WH;
+SELECT COUNT(*)            FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- ~432
+SELECT DISTINCT state_code FROM OPTIMAL_BLUE_DEMO.LENDER_VIEWS.TPO_SCORECARD;     -- only 'CA'
+SELECT * FROM OPTIMAL_BLUE_DEMO.COMERGENCE.TPO LIMIT 1;                            -- expect: denied
 ```
 
-If lender SELECT against `LENDER_VIEWS.TPO_SCORECARD` is denied:
-re-run the GRANT block at the bottom of the vignette SQL. If the
-denial against `COMERGENCE.TPO` does NOT happen, RBAC is wrong.
+If BIG count <= SMALL count, RAP is wired wrong (likely role names mismatch).
+If either lender sees `COMERGENCE.TPO`, secondary roles weren't disabled.
 
 ## 7. V6 - Streamlit dashboard
 

@@ -13,7 +13,7 @@ showing Cortex Code-built artifacts solving Comergence's daily problems
 - [ ] **DO NOT** pre-run vignette SQL - those are generated live during the demo.
 - [ ] EXCEPT V6: pre-deploy Streamlit `snow streamlit deploy ob_comergence_dashboard --replace`
       and confirm the SiS URL loads.
-- [ ] In a SECOND Snowsight tab, log in as `OB_DEMO_LENDER` (for V5 role-switch).
+- [ ] In TWO additional Snowsight tabs, log in as `OB_DEMO_LENDER_BIG` and `OB_DEMO_LENDER_SMALL` (for V5 multi-tenant role-switch).
 - [ ] Snowsight Workspaces: confirm the Git pull is current; open `RUN.md`.
 - [ ] Cortex Code panel: type `@infrastructure/prompt-contract.md` to confirm it resolves.
 
@@ -27,7 +27,7 @@ showing Cortex Code-built artifacts solving Comergence's daily problems
 | 0:35 | V2 generate + run + search/AISQL preview | `search-optimization`, `document-intelligence` | `02_compliance_search_and_aisql.sql` |
 | 0:55 | V3 generate + run + 5 agent prompts (centerpiece) | `cortex-agent` skill | `03_counterparty_oversight_agent.sql` |
 | 1:15 | V4 generate + `sql-verify` subagent + run (the cross-org "aha") | `sql-author` + `sql-verify` | `04_tpo_performance_views.sql` |
-| 1:30 | V5 generate + run producer; role-switch tab as `OB_DEMO_LENDER`; query consumer | `declarative-sharing` | `05_tpo_scorecard_share.sql` |
+| 1:30 | V5 generate + run producer + RAP; switch to BIG tab (~11K rows, min volume > $500K), switch to SMALL tab (~432 rows, all CA). Same view, two slices. Narrate live-update verbally. | `declarative-sharing` | `05_tpo_scorecard_share.sql` |
 | 1:42 | V6 open SiS URL; Cortex Code explains a code block; close on cross-org dashboard | `developing-with-streamlit-in-snowflake` | (pre-deployed) |
 | 1:55 | Recap + trial handoff: "clone the repo, mount as Workspace, rerun" | - | - |
 

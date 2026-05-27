@@ -83,8 +83,16 @@ them.
 - Fix: documented in V5 SQL + smoke_test that the lender-denial verification requires `USE SECONDARY ROLES NONE;` after `USE ROLE OB_DEMO_LENDER;`
 - Re-test: pass; second SELECT now fails with `Schema 'OPTIMAL_BLUE_DEMO.COMERGENCE' does not exist or not authorized`
 
-## Summary
-- 10 defects discovered during live deploy
+## DEFECT-11 - OB_DEMO_RW lacks CREATE ROW ACCESS POLICY on SHARED schema
+- File: `infrastructure/00_setup_db_roles_wh.sql`
+- Step: V5 RAP creation
+- Error: `Insufficient privileges to operate on schema 'SHARED'. Your primary role OB_DEMO_RW must have CREATE ROW ACCESS POLICY granted on SCHEMA OPTIMAL_BLUE_DEMO.SHARED.`
+- Root cause: SHARED schema grants list omitted `CREATE ROW ACCESS POLICY` (V5 redesign added a RAP)
+- Fix: added `CREATE ROW ACCESS POLICY` to the SHARED schema grant block in 00_setup
+- Re-test: pass
+
+## Summary (after V5 redesign)
+- 11 defects discovered total (10 initial deploy + 1 V5 multi-tenant redesign)
 - All fixed in source files
-- Final smoke_test shows green: row counts match, semantic views queryable, search service ACTIVE, agent created, share created with secure view, lender role can read scorecard but is denied source tables (with secondary roles disabled).
+- V5 redesign verified live: BIG persona sees 21,981 rows (min funded_volume_usd = $504,365), SMALL persona sees 456 rows (all CA), both denied on COMERGENCE.TPO source.
 - Estimated total deploy time on Medium WH: ~6 minutes (most spent on 500K LOCK insert + AISQL on 5K social posts).

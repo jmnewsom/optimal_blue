@@ -56,7 +56,7 @@ optimal_blue/
 | V2 | Cortex Search + AISQL | `AI.COMPLIANCE_CSS`, `COMERGENCE.SOCIAL_FLAG` |
 | V3 | Counterparty Oversight Agent | `AI.COUNTERPARTY_AGENT` (2 tools) |
 | V4 | Cross-org Bridge | `SHARED.TPO_PERFORMANCE_V`, `TPO_SCORECARD_V` (SECURE) |
-| V5 | Marketplace share + simulated consumer | `OB_DEMO_TPO_SCORECARD_SHARE`, `LENDER_VIEWS.TPO_SCORECARD` |
+| V5 | Marketplace share + multi-tenant RAP | `OB_DEMO_TPO_SCORECARD_SHARE`, `LENDER_VIEWS.TPO_SCORECARD`, `SHARED.TPO_SCORECARD_RAP` |
 | V6 | Streamlit dashboard | SiS app `OB_COMERGENCE_DASHBOARD` |
 
 ## Conventions

@@ -14,7 +14,7 @@ USE ROLE SYSADMIN;
 -- STEP 1: Create dedicated demo warehouses
 --   - OB_DEMO_WH         : SQL/UI workloads (Worksheets, Streamlit dev)
 --   - OB_DEMO_AI_WH      : Cortex Analyst / Search index build / AISQL
---   - OB_DEMO_LENDER_WH  : Simulated Marketplace consumer (V5)
+--   - OB_DEMO_LENDER_WH  : Simulated Marketplace consumers (V5 - 2 lender personas, RAP-protected)
 -- Demo talk: "Three workload-aligned warehouses, all auto-suspending in
 -- 60s so credits only burn while we're actively demonstrating."
 -- =====================================================================
@@ -50,13 +50,15 @@ USE ROLE USERADMIN;
 CREATE ROLE IF NOT EXISTS OB_DEMO_ADMIN  COMMENT = 'OB demo - owns objects';
 CREATE ROLE IF NOT EXISTS OB_DEMO_RW     COMMENT = 'OB demo - vignette author';
 CREATE ROLE IF NOT EXISTS OB_DEMO_RO     COMMENT = 'OB demo - analyst read-only';
-CREATE ROLE IF NOT EXISTS OB_DEMO_LENDER COMMENT = 'OB demo - simulated Marketplace consumer';
+CREATE ROLE IF NOT EXISTS OB_DEMO_LENDER_BIG   COMMENT = 'OB demo - lender consuming high-volume TPOs (RAP: funded_volume_usd > $500K)';
+CREATE ROLE IF NOT EXISTS OB_DEMO_LENDER_SMALL COMMENT = 'OB demo - regional lender restricted to California (RAP: state_code = CA)';
 
 -- Role hierarchy: ADMIN owns everything, RW inherits RO read access.
 GRANT ROLE OB_DEMO_RO     TO ROLE OB_DEMO_RW;
 GRANT ROLE OB_DEMO_RW     TO ROLE OB_DEMO_ADMIN;
 GRANT ROLE OB_DEMO_ADMIN  TO ROLE SYSADMIN;
-GRANT ROLE OB_DEMO_LENDER TO ROLE SYSADMIN;
+GRANT ROLE OB_DEMO_LENDER_BIG   TO ROLE SYSADMIN;
+GRANT ROLE OB_DEMO_LENDER_SMALL TO ROLE SYSADMIN;
 
 -- Grant the demo roles to the active service user so the SE can switch
 -- between them in Snowsight without leaving the session. IDENTIFIER()
@@ -65,7 +67,8 @@ SET ob_demo_user = CURRENT_USER();
 GRANT ROLE OB_DEMO_ADMIN  TO USER IDENTIFIER($ob_demo_user);
 GRANT ROLE OB_DEMO_RW     TO USER IDENTIFIER($ob_demo_user);
 GRANT ROLE OB_DEMO_RO     TO USER IDENTIFIER($ob_demo_user);
-GRANT ROLE OB_DEMO_LENDER TO USER IDENTIFIER($ob_demo_user);
+GRANT ROLE OB_DEMO_LENDER_BIG   TO USER IDENTIFIER($ob_demo_user);
+GRANT ROLE OB_DEMO_LENDER_SMALL TO USER IDENTIFIER($ob_demo_user);
 
 -- Warehouse usage grants
 USE ROLE SECURITYADMIN;
@@ -75,7 +78,8 @@ GRANT USAGE, OPERATE ON WAREHOUSE OB_DEMO_LENDER_WH TO ROLE OB_DEMO_ADMIN;
 GRANT USAGE          ON WAREHOUSE OB_DEMO_WH        TO ROLE OB_DEMO_RW;
 GRANT USAGE          ON WAREHOUSE OB_DEMO_AI_WH     TO ROLE OB_DEMO_RW;
 GRANT USAGE          ON WAREHOUSE OB_DEMO_WH        TO ROLE OB_DEMO_RO;
-GRANT USAGE          ON WAREHOUSE OB_DEMO_LENDER_WH TO ROLE OB_DEMO_LENDER;
+GRANT USAGE          ON WAREHOUSE OB_DEMO_LENDER_WH TO ROLE OB_DEMO_LENDER_BIG;
+GRANT USAGE          ON WAREHOUSE OB_DEMO_LENDER_WH TO ROLE OB_DEMO_LENDER_SMALL;
 
 -- Account-level: OB_DEMO_ADMIN needs CREATE SHARE for V5 (Marketplace).
 USE ROLE ACCOUNTADMIN;
@@ -117,7 +121,7 @@ GRANT USAGE, CREATE TABLE, CREATE VIEW, CREATE STAGE, CREATE FUNCTION,
       CREATE SEMANTIC VIEW, CREATE CORTEX SEARCH SERVICE
     ON SCHEMA OPTIMAL_BLUE_DEMO.PPE TO ROLE OB_DEMO_RW;
 GRANT USAGE, CREATE TABLE, CREATE VIEW, CREATE STAGE,
-      CREATE SEMANTIC VIEW
+      CREATE SEMANTIC VIEW, CREATE ROW ACCESS POLICY
     ON SCHEMA OPTIMAL_BLUE_DEMO.SHARED TO ROLE OB_DEMO_RW;
 GRANT USAGE, CREATE TABLE, CREATE VIEW, CREATE STAGE, CREATE FUNCTION,
       CREATE SEMANTIC VIEW, CREATE CORTEX SEARCH SERVICE,
