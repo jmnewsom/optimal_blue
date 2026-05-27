@@ -5,11 +5,28 @@ Cortex Code's right-side panel can `@`-mention every contract.
 
 ## Prerequisites
 
-- Repo pushed to GitHub / GitLab / Azure DevOps (private OK).
-- A Personal Access Token (PAT) for that Git provider with `repo:read`.
-- ACCOUNTADMIN (or a role with CREATE INTEGRATION / CREATE SECRET).
+- Repo pushed to a Git provider. (This repo lives at
+  `https://github.com/jmnewsom/optimal_blue`.)
+- ACCOUNTADMIN (or a role with CREATE INTEGRATION; CREATE SECRET only
+  needed for private repos).
+- A Personal Access Token (PAT) is **only required if the repo is
+  private**. For a public repo, skip the secret entirely.
 
-## Step 1 - Create the secret + API integration in Snowflake
+## Step 1 - Create the API integration in Snowflake
+
+### Public repo (no secret) - this repo today
+
+```sql
+USE ROLE ACCOUNTADMIN;
+
+CREATE OR REPLACE API INTEGRATION ob_demo_git_api
+    API_PROVIDER = git_https_api
+    API_ALLOWED_PREFIXES = ('https://github.com/jmnewsom')
+    ALLOWED_AUTHENTICATION_SECRETS = ()
+    ENABLED = TRUE;
+```
+
+### Private repo (PAT required) - reference
 
 ```sql
 USE ROLE ACCOUNTADMIN;
@@ -23,21 +40,31 @@ CREATE OR REPLACE SECRET ob_demo_git_token
 
 CREATE OR REPLACE API INTEGRATION ob_demo_git_api
     API_PROVIDER = git_https_api
-    API_ALLOWED_PREFIXES = ('https://github.com/<your-org>')   -- or gitlab.com / dev.azure.com
+    API_ALLOWED_PREFIXES = ('https://github.com/<your-org>')
     ALLOWED_AUTHENTICATION_SECRETS = (ob_demo_git_token)
     ENABLED = TRUE;
 ```
 
 ## Step 2 - Create the Git repository object
 
+### Public repo - no `GIT_CREDENTIALS`
+
+```sql
+CREATE OR REPLACE GIT REPOSITORY OB_DEMO_REPO
+    API_INTEGRATION = ob_demo_git_api
+    ORIGIN = 'https://github.com/jmnewsom/optimal_blue.git';
+
+ALTER GIT REPOSITORY OB_DEMO_REPO FETCH;
+LIST @OB_DEMO_REPO/branches/main/;
+```
+
+### Private repo - reference
+
 ```sql
 CREATE OR REPLACE GIT REPOSITORY OB_DEMO_REPO
     API_INTEGRATION = ob_demo_git_api
     GIT_CREDENTIALS = ob_demo_git_token
-    ORIGIN = 'https://github.com/<your-org>/optimalblue-demo.git';
-
-ALTER GIT REPOSITORY OB_DEMO_REPO FETCH;
-LIST @OB_DEMO_REPO/branches/main/;
+    ORIGIN = 'https://github.com/<your-org>/<repo>.git';
 ```
 
 Grant the demo roles read access:
@@ -127,6 +154,7 @@ Then in Snowsight click the refresh icon on the Workspaces tree.
 
 ## Troubleshooting
 
-- **`401 Unauthorized` on FETCH**: PAT expired or missing `repo` scope.
-- **`ALLOWED_AUTHENTICATION_SECRETS`**: must list the secret by name *before* the Git repo can use it.
+- **`401 Unauthorized` on FETCH** (private repo only): PAT expired or missing `repo` scope.
+- **Public repo: no auth needed**: the `git_https_api` provider performs anonymous `git clone` against public GitHub. If you ever flip the repo to private, redo Step 1 with the secret form.
+- **`ALLOWED_AUTHENTICATION_SECRETS`**: must list the secret by name *before* the Git repo can use it (private repos only).
 - **Repo not appearing in Workspaces UI**: ensure your Snowsight role has `READ` on the Git repository object.
