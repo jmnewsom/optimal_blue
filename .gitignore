@@ -1,0 +1,22 @@
+# macOS noise
+.DS_Store
+
+# Cortex Code Desktop local plan history (not source)
+.snowflake/
+
+# Local prep notes - not for the public repo
+plan/
+
+# Python noise
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+.env
+.env.*

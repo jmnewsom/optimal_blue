@@ -1,0 +1,20 @@
+-- =====================================================================
+-- reset_demo.sql
+-- Tear down everything created by the Optimal Blue / Comergence demo.
+-- Safe to run repeatedly.
+-- =====================================================================
+USE ROLE SYSADMIN;
+
+DROP DATABASE  IF EXISTS OPTIMAL_BLUE_DEMO   CASCADE;
+
+DROP SHARE     IF EXISTS OB_DEMO_TPO_SCORECARD_SHARE;
+
+DROP WAREHOUSE IF EXISTS OB_DEMO_WH;
+DROP WAREHOUSE IF EXISTS OB_DEMO_AI_WH;
+DROP WAREHOUSE IF EXISTS OB_DEMO_LENDER_WH;
+
+USE ROLE USERADMIN;
+DROP ROLE IF EXISTS OB_DEMO_LENDER;
+DROP ROLE IF EXISTS OB_DEMO_RO;
+DROP ROLE IF EXISTS OB_DEMO_RW;
+DROP ROLE IF EXISTS OB_DEMO_ADMIN;
