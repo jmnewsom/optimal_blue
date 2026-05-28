@@ -121,3 +121,13 @@ them.
     LENDER_SMALL = 456 rows / only 'CA';
     both denied on COMERGENCE.TPO source
 - Total deploy time on Medium WH: ~6 minutes
+
+## V6 SiS-runtime defects (added during in-flight troubleshooting)
+
+| ID | Symptom | Root cause | Fix |
+|---|---|---|---|
+| DEFECT-14 | "TypeError: bad argument type for built-in operation" on first paint | `decimal.Decimal` columns from `session.sql().to_pandas()` flowing into Plotly's JSON encoder | Add `_decimal_safe(df)` post-processor; coerce to float via `pd.to_numeric` |
+| DEFECT-15 | "syntax error line 4 unexpected 'SAMPLE'" | `SAMPLE (5000 ROWS)` placed AFTER `WHERE` — Snowflake parses SAMPLE as a table-clause modifier | Replace with `LIMIT 5000` (or place SAMPLE before WHERE) |
+| DEFECT-16 | Plotly choropleth renders blank in SiS warehouse runtime | plotly geo support inconsistent in SiS-pinned plotly version | Replace with Altair top-N horizontal bar; drop plotly dep |
+| DEFECT-17 | Altair axis labels render in light grey on white | Streamlit overlays its light theme on top of Altair's `configure_axis(...)` | Pass `theme=None` to every `st.altair_chart` AND add `configure(background='transparent')` chart-side |
+| DEFECT-18 | Sparklines show stark white background inside KPI cards | Sparkline chart had only `configure_view(strokeWidth=0)`, missing transparent background config | Add `.configure(background='transparent').configure_view(stroke=None, strokeWidth=0, fill=None)` |

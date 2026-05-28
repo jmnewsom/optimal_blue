@@ -163,6 +163,46 @@ so live regeneration doesn't reintroduce them:
     then warehouses, then roles. See `docs/reset_demo.sql` for the
     canonical order.
 
+## Streamlit-in-Snowflake gotchas (binding for any vignette that ships a SiS app)
+
+Captured during V6 build - apply to ANY future SiS app generated from
+this contract family.
+
+15. **Decimal -> float coercion**. `session.sql(...).to_pandas()` returns
+    NUMBER columns as `decimal.Decimal`. Plotly and several Altair
+    encoders raise `TypeError: bad argument type for built-in operation`
+    on Decimal. Apply a `_decimal_safe(df)` post-processor that runs
+    `pd.to_numeric` on object-dtype columns whose first value is
+    `Decimal`. Wrap every read.
+16. **`theme=None` on every `st.altair_chart`** + chart-level
+    `configure(background='transparent')`. Streamlit injects its own
+    light theme on top of Altair's `configure_axis(...)`, flipping dark
+    text back to light grey on white. Both knobs are required - one
+    alone is not sufficient. Applies to sparklines too (most-missed case).
+17. **`st.expander`, NOT `st.dialog`**. `@st.dialog` is gated behind
+    Streamlit >= 1.30; SiS warehouse runtime ships older. `st.expander`
+    + `st.chat_input` + `st.chat_message` is the portable chat panel.
+18. **`environment.yml` (conda format)**, not `requirements.txt`. SiS
+    warehouse runtime reads `environment.yml` directly. Use
+    `channels: [snowflake]`. Avoid plotly when Altair will do - it adds
+    a heavy dependency and renders inconsistently in SiS.
+19. **`SAMPLE` is a TABLE-clause modifier**. Must come immediately after
+    the table reference, BEFORE any `WHERE`. If you need both filtering
+    and a row cap, use `LIMIT n` instead. The error `unexpected 'SAMPLE'`
+    means the clause is in the wrong position.
+20. **Diagnostic stub** (per `developing-with-streamlit-in-snowflake`
+    skill): add a sidebar toggle that prints `CURRENT_ROLE / USER /
+    WAREHOUSE / DATABASE / SCHEMA`. The skill calls this the #1
+    first-line debug for any SiS \"why is this failing\" question.
+21. **Defensive numeric helpers**. Wrap any value flowing into an
+    f-string formatter with a `_f()` / `_i()` helper that handles None,
+    NaN, and Decimal. Mixing Decimal and float in `Decimal / 1e9` raises
+    a TypeError that surfaces as \"bad argument type\" in SiS.
+22. **PUT to stage via `snowflake_sql_execute` if `snow stage copy`
+    fails**. When PATs expire on the local snow CLI, the IDE's
+    snowflake_sql_execute path can still run `PUT 'file:///abs/path'
+    @stage AUTO_COMPRESS=FALSE OVERWRITE=TRUE` - same effect.
+
 ## Comment style (binding)
 
 - Every `CREATE OR REPLACE <object>` is preceded by a 2-4 line block
