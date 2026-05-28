@@ -17,6 +17,7 @@ Deploy:    snow streamlit deploy ob_comergence_dashboard --replace
 """
 
 import json
+from decimal import Decimal
 import altair as alt
 import pandas as pd
 import plotly.express as px
@@ -153,12 +154,40 @@ st.markdown(
 session = get_active_session()
 
 # ============================================================
+# SiS DIAGNOSTIC STUB (per developing-with-streamlit-in-snowflake skill)
+# Toggle at top so we can see CURRENT_ROLE/USER/WH/DB at a glance.
+# ============================================================
+if st.sidebar.toggle("Show SiS session info", value=False):
+    try:
+        ctx = session.sql(
+            "SELECT CURRENT_ROLE() r, CURRENT_USER() u, CURRENT_WAREHOUSE() w, CURRENT_DATABASE() d, CURRENT_SCHEMA() s"
+        ).collect()
+        st.sidebar.info(
+            f"role={ctx[0]['R']}\nuser={ctx[0]['U']}\nwh={ctx[0]['W']}\ndb={ctx[0]['D']}\nschema={ctx[0]['S']}"
+        )
+    except Exception as e:
+        st.sidebar.error(f"Session probe failed: {e}")
+
+# ============================================================
 # DATA HELPERS (cached)
 # ============================================================
+def _decimal_safe(df: pd.DataFrame) -> pd.DataFrame:
+    """Convert decimal.Decimal columns to float so plotly/altair JSON serializers don't choke.
+    SiS's `session.sql(...).to_pandas()` returns NUMBER columns as Decimal which trips
+    Plotly's encoder with: 'TypeError: bad argument type for built-in operation'.
+    """
+    if df is None or df.empty:
+        return df
+    for c in df.columns:
+        s = df[c]
+        if s.dtype == object and len(s) and isinstance(s.iloc[0], Decimal):
+            df[c] = pd.to_numeric(s, errors="coerce")
+    return df
+
 @st.cache_data(ttl=300, show_spinner=False)
 def q(sql: str) -> pd.DataFrame:
-    """Run a SQL string and return a pandas DataFrame."""
-    return session.sql(sql).to_pandas()
+    """Run a SQL string and return a pandas DataFrame (Decimal-safe)."""
+    return _decimal_safe(session.sql(sql).to_pandas())
 
 @st.cache_data(ttl=600, show_spinner=False)
 def todays_insight() -> str:
@@ -469,12 +498,19 @@ fig.update_layout(
              landcolor="rgba(255,255,255,0.04)",
              subunitcolor="rgba(255,255,255,0.15)"),
     margin=dict(l=10, r=10, t=10, b=10),
-    coloraxis_colorbar=dict(tickfont=dict(color=OB_TEXT), title_font=dict(color=OB_TEXT)),
+    coloraxis_colorbar=dict(
+        tickfont=dict(color=OB_TEXT),
+        title=dict(text="High-risk TPOs", font=dict(color=OB_TEXT)),
+    ),
     font=dict(color=OB_TEXT),
     height=380,
 )
 st.markdown("#### High-Risk TPOs by State")
-st.plotly_chart(fig, use_container_width=True)
+try:
+    st.plotly_chart(fig, use_container_width=True)
+except Exception as e:
+    st.warning(f"Choropleth could not render: {e}. Showing table instead.")
+    st.dataframe(mdf, hide_index=True, use_container_width=True)
 
 # ============================================================
 # 5) CHARTS GRID

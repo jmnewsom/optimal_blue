@@ -21,9 +21,12 @@ CREATE STAGE IF NOT EXISTS AI.STREAMLIT_STAGE
 --   snow stage put vignettes/06_streamlit_dashboard/app.py
 --                  @OPTIMAL_BLUE_DEMO.AI.STREAMLIT_STAGE/ob_comergence_dashboard/
 --                  --auto-compress=false --overwrite=true
---   snow stage put vignettes/06_streamlit_dashboard/requirements.txt
+--   snow stage put vignettes/06_streamlit_dashboard/environment.yml
 --                  @OPTIMAL_BLUE_DEMO.AI.STREAMLIT_STAGE/ob_comergence_dashboard/
 --                  --auto-compress=false --overwrite=true
+-- NOTE: SiS warehouse runtime reads environment.yml (conda format),
+-- not requirements.txt. Both are kept for `snow streamlit deploy`,
+-- but environment.yml is the one SiS actually honors.
 
 CREATE OR REPLACE STREAMLIT AI.OB_COMERGENCE_DASHBOARD
     ROOT_LOCATION = '@OPTIMAL_BLUE_DEMO.AI.STREAMLIT_STAGE/ob_comergence_dashboard'
