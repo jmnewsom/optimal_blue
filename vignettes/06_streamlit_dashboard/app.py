@@ -414,7 +414,8 @@ def kpi_card(col, label, value, sub, color="", spark_kind=None):
                         y=alt.Y("V:Q", axis=None),
                     )
                     .properties(height=36)
-                    .configure_view(strokeWidth=0)
+                    .configure(background="transparent")
+                    .configure_view(stroke=None, strokeWidth=0, fill=None)
                 )
                 with col:
                     st.altair_chart(chart, use_container_width=True, theme=None)
