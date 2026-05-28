@@ -356,7 +356,7 @@ def score_vs_pt():
         SELECT compliance_score, pull_through_pct, risk_tier, funded_volume_usd
         FROM OPTIMAL_BLUE_DEMO.SHARED.TPO_PERFORMANCE_V
         WHERE total_locks > 5
-        SAMPLE (5000 ROWS)
+        LIMIT 5000
     """)
 
 @st.cache_data(ttl=300, show_spinner=False)
