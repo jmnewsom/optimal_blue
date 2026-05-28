@@ -196,14 +196,17 @@ def todays_insight() -> str:
         "End with one specific recommended action. Do not invent any other numbers."
     )
     safe_prompt = prompt.replace("'", "''")
-    out = session.sql(
-        f"SELECT SNOWFLAKE.CORTEX.AI_COMPLETE('claude-4-sonnet','{safe_prompt}') AS s"
-    ).collect()
-    return out[0]["S"]
+    try:
+        out = session.sql(
+            f"SELECT SNOWFLAKE.CORTEX.AI_COMPLETE('claude-4-sonnet','{safe_prompt}') AS s"
+        ).collect()
+        return str(out[0]["S"]) if out else ""
+    except Exception:
+        return ""
 
 @st.cache_data(ttl=300, show_spinner=False)
 def kpi_values():
-    return q("""
+    df = q("""
         WITH perf AS (SELECT * FROM OPTIMAL_BLUE_DEMO.SHARED.TPO_PERFORMANCE_V),
              social AS (
                SELECT COUNT_IF(compliance_risk='HIGH'
@@ -222,7 +225,25 @@ def kpi_values():
           (SELECT social_high_7d FROM social)                                       AS social_high_7d,
           (SELECT AVG(pull_through_pct) FROM perf WHERE total_locks>0)              AS avg_pt,
           (SELECT funded_30d FROM vol)                                              AS funded_30d
-    """).iloc[0]
+    """)
+    # Cast everything to plain Python floats / ints, defaulting None/NaN to 0.
+    # SiS surfaces NaN/Decimal/None type mixes as "bad argument type for built-in operation".
+    def _as_float(v):
+        try:
+            if v is None: return 0.0
+            f = float(v)
+            return 0.0 if f != f else f  # NaN guard
+        except Exception:
+            return 0.0
+    row = df.iloc[0]
+    return {
+        "GOOD_STANDING":  int(_as_float(row.get("GOOD_STANDING"))),
+        "HI_FINDINGS":    int(_as_float(row.get("HI_FINDINGS"))),
+        "EXP_30":         int(_as_float(row.get("EXP_30"))),
+        "SOCIAL_HIGH_7D": int(_as_float(row.get("SOCIAL_HIGH_7D"))),
+        "AVG_PT":         _as_float(row.get("AVG_PT")),
+        "FUNDED_30D":     _as_float(row.get("FUNDED_30D")),
+    }
 
 @st.cache_data(ttl=300, show_spinner=False)
 def kpi_spark(kind: str) -> pd.DataFrame:
@@ -354,30 +375,23 @@ def kpi_card(col, label, value, sub, color="", spark_kind=None):
         unsafe_allow_html=True,
     )
     if spark_kind:
-        df = kpi_spark(spark_kind)
-        if not df.empty:
-            chart = (
-                alt.Chart(df)
-                .mark_area(
-                    line={"color": OB_MAGENTA, "strokeWidth": 1.5},
-                    color=alt.Gradient(
-                        gradient="linear",
-                        stops=[
-                            alt.GradientStop(color=OB_MAGENTA, offset=0),
-                            alt.GradientStop(color=OB_NAVY, offset=1),
-                        ],
-                        x1=1, x2=1, y1=1, y2=0,
-                    ),
+        try:
+            df = kpi_spark(spark_kind)
+            if df is not None and not df.empty:
+                chart = (
+                    alt.Chart(df)
+                    .mark_area(opacity=0.55, color=OB_MAGENTA, line={"color": OB_MAGENTA, "strokeWidth": 1.5})
+                    .encode(
+                        x=alt.X("D:T", axis=None),
+                        y=alt.Y("V:Q", axis=None),
+                    )
+                    .properties(height=36)
+                    .configure_view(strokeWidth=0)
                 )
-                .encode(
-                    x=alt.X("D:T", axis=None),
-                    y=alt.Y("V:Q", axis=None),
-                )
-                .properties(height=36)
-                .configure_view(strokeWidth=0)
-            )
-            with col:
-                st.altair_chart(chart, use_container_width=True)
+                with col:
+                    st.altair_chart(chart, use_container_width=True)
+        except Exception:
+            pass  # never let a sparkline break the whole page
 
 def status_pill(text, kind="dim"):
     return f"<span class='ob-pill {kind}'>{text}</span>"
@@ -424,12 +438,12 @@ st.markdown(
 # ============================================================
 k = kpi_values()
 c1, c2, c3, c4, c5, c6 = st.columns(6)
-kpi_card(c1, "Good Standing",      f"{int(k['GOOD_STANDING'] or 0):,}",     "active & score >= 80", "green",   "good")
-kpi_card(c2, "Hi-Sev Findings",    f"{int(k['HI_FINDINGS'] or 0):,}",       "open + in remediation", "magenta", "findings")
-kpi_card(c3, "Lic Exp 30d",        f"{int(k['EXP_30'] or 0):,}",            "across all states",     "amber",   "expiring")
-kpi_card(c4, "Social Flags 7d",    f"{int(k['SOCIAL_HIGH_7D'] or 0):,}",    "AI_CLASSIFY = HIGH",    "magenta", "social")
-kpi_card(c5, "Avg Pull-through",   f"{(k['AVG_PT'] or 0):.1f}%",            "TPOs with locks",       "",        "onboard")
-kpi_card(c6, "Funded 30d",         f"${(k['FUNDED_30D'] or 0)/1e9:.2f}B",   "PPE cross-org bridge",  "green",   "funded")
+kpi_card(c1, "Good Standing",      f"{k['GOOD_STANDING']:,}",            "active & score >= 80", "green",   "good")
+kpi_card(c2, "Hi-Sev Findings",    f"{k['HI_FINDINGS']:,}",              "open + in remediation", "magenta", "findings")
+kpi_card(c3, "Lic Exp 30d",        f"{k['EXP_30']:,}",                   "across all states",     "amber",   "expiring")
+kpi_card(c4, "Social Flags 7d",    f"{k['SOCIAL_HIGH_7D']:,}",           "AI_CLASSIFY = HIGH",    "magenta", "social")
+kpi_card(c5, "Avg Pull-through",   f"{k['AVG_PT']:.1f}%",                "TPOs with locks",       "",        "onboard")
+kpi_card(c6, "Funded 30d",         f"${k['FUNDED_30D']/1e9:.2f}B",       "PPE cross-org bridge",  "green",   "funded")
 
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
@@ -523,17 +537,8 @@ with cD:
     st.markdown("#### Social-flag Trend (30d)")
     df = social_trend()
     chart = alt_dark(
-        alt.Chart(df).mark_area(
-            line={"color": OB_MAGENTA, "strokeWidth": 2},
-            color=alt.Gradient(
-                gradient="linear",
-                stops=[
-                    alt.GradientStop(color=OB_MAGENTA, offset=0),
-                    alt.GradientStop(color="rgba(230,0,126,0.05)", offset=1),
-                ],
-                x1=1, x2=1, y1=1, y2=0,
-            ),
-        ).encode(
+        alt.Chart(df).mark_area(opacity=0.5, color=OB_MAGENTA,
+                                line={"color": OB_MAGENTA, "strokeWidth": 2}).encode(
             x=alt.X("D:T", title=None),
             y=alt.Y("HIGH_N:Q", title="HIGH-risk posts"),
             tooltip=["D","HIGH_N","TOTAL_N"],
@@ -577,24 +582,46 @@ if not opts.empty:
 
     if not perf.empty:
         row = perf.iloc[0]
-        status_kind = ("green" if row["TPO_STATUS"] == "ACTIVE"
-                       else "magenta" if row["TPO_STATUS"] == "SUSPENDED"
+        # Defensive casts - SiS dies on Decimal/None mixes in f-strings.
+        def _f(v, default=0.0):
+            try:
+                if v is None: return default
+                f = float(v)
+                return default if f != f else f
+            except Exception:
+                return default
+        def _i(v):
+            return int(_f(v))
+        tpo_status_val = str(row.get("TPO_STATUS") or "UNKNOWN")
+        risk_tier_val  = str(row.get("RISK_TIER")  or "UNKNOWN")
+        state_val      = str(row.get("STATE_CODE") or "")
+        channel_val    = str(row.get("CHANNEL_CODE") or "")
+        tpo_name_val   = str(row.get("TPO_NAME") or "")
+
+        status_kind = ("green" if tpo_status_val == "ACTIVE"
+                       else "magenta" if tpo_status_val == "SUSPENDED"
                        else "amber")
-        risk_kind = ("green" if row["RISK_TIER"] == "LOW"
-                     else "amber" if row["RISK_TIER"] == "MED"
+        risk_kind = ("green" if risk_tier_val == "LOW"
+                     else "amber" if risk_tier_val == "MED"
                      else "magenta")
-        score = int(row["COMPLIANCE_SCORE"])
+        score = _i(row.get("COMPLIANCE_SCORE"))
         score_color = OB_GREEN if score >= 80 else OB_AMBER if score >= 60 else OB_MAGENTA
+        pull_pct = _f(row.get("PULL_THROUGH_PCT"))
+        funded_locks = _i(row.get("FUNDED_LOCKS"))
+        open_findings = _i(row.get("OPEN_FINDINGS"))
+        hi_sev = _i(row.get("HIGH_SEVERITY_FINDINGS"))
+        funded_vol = _f(row.get("FUNDED_VOLUME_USD"))
+        investor_breadth = _i(row.get("INVESTOR_BREADTH"))
 
         st.markdown(
             f"""
             <div class='ob-glass' style='margin-bottom:14px;'>
               <div style='display:flex; align-items:center; gap:14px; flex-wrap:wrap;'>
-                <div style='font-size:1.4rem; font-weight:700;'>{row['TPO_NAME']}</div>
-                {status_pill(row['TPO_STATUS'], status_kind)}
-                {status_pill(row['RISK_TIER']+' RISK', risk_kind)}
-                {status_pill(row['STATE_CODE'], 'dim')}
-                {status_pill(row['CHANNEL_CODE'], 'dim')}
+                <div style='font-size:1.4rem; font-weight:700;'>{tpo_name_val}</div>
+                {status_pill(tpo_status_val, status_kind)}
+                {status_pill(risk_tier_val+' RISK', risk_kind)}
+                {status_pill(state_val, 'dim')}
+                {status_pill(channel_val, 'dim')}
               </div>
             </div>
             """,
@@ -612,22 +639,22 @@ if not opts.empty:
         with d2:
             st.markdown(
                 f"<div class='ob-glass'><div style='color:{OB_DIM};font-size:0.78rem;font-weight:600;letter-spacing:0.08em;'>PULL-THROUGH</div>"
-                f"<div class='ob-bignum' style='margin-top:6px'>{row['PULL_THROUGH_PCT']:.1f}%</div>"
-                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{int(row['FUNDED_LOCKS'])} funded locks</div></div>",
+                f"<div class='ob-bignum' style='margin-top:6px'>{pull_pct:.1f}%</div>"
+                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{funded_locks} funded locks</div></div>",
                 unsafe_allow_html=True,
             )
         with d3:
             st.markdown(
                 f"<div class='ob-glass'><div style='color:{OB_DIM};font-size:0.78rem;font-weight:600;letter-spacing:0.08em;'>OPEN FINDINGS</div>"
-                f"<div class='ob-bignum' style='margin-top:6px'>{int(row['OPEN_FINDINGS'])}</div>"
-                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{int(row['HIGH_SEVERITY_FINDINGS'])} high severity</div></div>",
+                f"<div class='ob-bignum' style='margin-top:6px'>{open_findings}</div>"
+                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{hi_sev} high severity</div></div>",
                 unsafe_allow_html=True,
             )
         with d4:
             st.markdown(
                 f"<div class='ob-glass'><div style='color:{OB_DIM};font-size:0.78rem;font-weight:600;letter-spacing:0.08em;'>FUNDED VOLUME</div>"
-                f"<div class='ob-bignum' style='margin-top:6px'>${row['FUNDED_VOLUME_USD']/1e6:.1f}M</div>"
-                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{int(row['INVESTOR_BREADTH'])} investors</div></div>",
+                f"<div class='ob-bignum' style='margin-top:6px'>${funded_vol/1e6:.1f}M</div>"
+                f"<div style='color:{OB_DIM};font-size:0.78rem;'>{investor_breadth} investors</div></div>",
                 unsafe_allow_html=True,
             )
 
@@ -678,8 +705,10 @@ def call_agent(question: str) -> str:
 if "agent_history" not in st.session_state:
     st.session_state.agent_history = []
 
-@st.dialog("Counterparty Oversight Agent", width="large")
-def agent_dialog():
+# st.dialog is gated behind newer Streamlit versions; an always-visible
+# expander is more SiS-portable and still feels like a chat panel.
+st.markdown("<div style='height:24px'></div>", unsafe_allow_html=True)
+with st.expander("💬  Ask the Counterparty Oversight Agent", expanded=False):
     st.caption("Ask anything about TPO risk, guidelines, or remediation. Powered by V3 agent.")
     for q_text, a_text in st.session_state.agent_history:
         with st.chat_message("user"):
@@ -688,17 +717,10 @@ def agent_dialog():
             st.markdown(a_text)
     user_q = st.chat_input("Type a question...")
     if user_q:
-        st.session_state.agent_history.append((user_q, "_thinking..._"))
         with st.spinner("Calling agent..."):
             try:
                 answer = call_agent(user_q)
             except Exception as e:
                 answer = f"Agent call failed: {e}"
-        st.session_state.agent_history[-1] = (user_q, answer)
+        st.session_state.agent_history.append((user_q, answer))
         st.rerun()
-
-# Floating button (fixed bottom-right)
-st.markdown("<div class='ob-floating'>", unsafe_allow_html=True)
-if st.button("💬 Ask the Agent", type="primary"):
-    agent_dialog()
-st.markdown("</div>", unsafe_allow_html=True)
