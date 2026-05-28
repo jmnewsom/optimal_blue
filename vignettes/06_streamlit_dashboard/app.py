@@ -20,7 +20,6 @@ import json
 from decimal import Decimal
 import altair as alt
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 from snowflake.snowpark.context import get_active_session
 
@@ -418,7 +417,7 @@ def kpi_card(col, label, value, sub, color="", spark_kind=None):
                     .configure_view(strokeWidth=0)
                 )
                 with col:
-                    st.altair_chart(chart, use_container_width=True)
+                    st.altair_chart(chart, use_container_width=True, theme=None)
         except Exception:
             pass  # never let a sparkline break the whole page
 
@@ -477,48 +476,50 @@ kpi_card(c6, "Funded 30d",         f"${k['FUNDED_30D']/1e9:.2f}B",       "PPE cr
 st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
 # ============================================================
-# 4) US CHOROPLETH MAP
+# 4) HIGH-RISK TPOs BY STATE - top-15 horizontal bar (reliable in SiS)
 # ============================================================
-mdf = map_data()
-fig = px.choropleth(
-    mdf,
-    locations="STATE_CODE",
-    locationmode="USA-states",
-    color="HIGH_RISK_TPOS",
-    hover_name="STATE_NAME",
-    hover_data={"TPOS": True, "HIGH_RISK_TPOS": True, "SUSPENDED_TPOS": True, "STATE_CODE": False},
-    scope="usa",
-    color_continuous_scale=[(0, "#152B5C"), (0.5, "#7B1F58"), (1, OB_MAGENTA)],
-    labels={"HIGH_RISK_TPOS": "High-risk TPOs"},
+mdf = map_data().sort_values("HIGH_RISK_TPOS", ascending=False).head(15)
+st.markdown("#### High-Risk TPOs by State (top 15)")
+bar_chart = (
+    alt.Chart(mdf)
+    .mark_bar(color=OB_MAGENTA, cornerRadius=4)
+    .encode(
+        x=alt.X("HIGH_RISK_TPOS:Q", title="High-risk TPOs"),
+        y=alt.Y("STATE_NAME:N", sort="-x", title=None),
+        tooltip=["STATE_NAME", "HIGH_RISK_TPOS", "TPOS", "SUSPENDED_TPOS"],
+    )
+    .properties(height=380)
+    .configure(background="transparent")
+    .configure_view(stroke=None)
+    .configure_axis(
+        labelColor=OB_TEXT, titleColor=OB_TEXT,
+        gridColor="rgba(255,255,255,0.06)", domainColor="rgba(255,255,255,0.2)",
+    )
 )
-fig.update_layout(
-    paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
-    geo=dict(bgcolor="rgba(0,0,0,0)", lakecolor="rgba(0,0,0,0)",
-             landcolor="rgba(255,255,255,0.04)",
-             subunitcolor="rgba(255,255,255,0.15)"),
-    margin=dict(l=10, r=10, t=10, b=10),
-    coloraxis_colorbar=dict(
-        tickfont=dict(color=OB_TEXT),
-        title=dict(text="High-risk TPOs", font=dict(color=OB_TEXT)),
-    ),
-    font=dict(color=OB_TEXT),
-    height=380,
-)
-st.markdown("#### High-Risk TPOs by State")
-try:
-    st.plotly_chart(fig, use_container_width=True)
-except Exception as e:
-    st.warning(f"Choropleth could not render: {e}. Showing table instead.")
-    st.dataframe(mdf, hide_index=True, use_container_width=True)
+st.altair_chart(bar_chart, use_container_width=True, theme=None)
 
 # ============================================================
 # 5) CHARTS GRID
 # ============================================================
 def alt_dark(chart):
-    return chart.configure_view(strokeWidth=0).configure_axis(
-        labelColor=OB_TEXT, titleColor=OB_TEXT, gridColor="rgba(255,255,255,0.06)"
-    ).configure_legend(labelColor=OB_TEXT, titleColor=OB_TEXT)
+    """Apply dark theme. Pair with theme=None on st.altair_chart so Streamlit
+    doesn't override our config."""
+    return (
+        chart
+        .configure(background="transparent")
+        .configure_view(stroke=None, strokeWidth=0)
+        .configure_axis(
+            labelColor=OB_TEXT, titleColor=OB_TEXT,
+            gridColor="rgba(255,255,255,0.06)",
+            domainColor="rgba(255,255,255,0.2)",
+            tickColor="rgba(255,255,255,0.2)",
+        )
+        .configure_legend(
+            labelColor=OB_TEXT, titleColor=OB_TEXT,
+            symbolStrokeColor="rgba(255,255,255,0.2)",
+        )
+        .configure_title(color=OB_TEXT)
+    )
 
 cA, cB = st.columns(2)
 with cA:
@@ -531,7 +532,7 @@ with cA:
             tooltip=["REGION", "HI_FINDINGS"],
         ).properties(height=280)
     )
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True, theme=None)
 
 with cB:
     st.markdown("#### Compliance Score vs Pull-through")
@@ -553,7 +554,7 @@ with cB:
                 tooltip=["COMPLIANCE_SCORE","PULL_THROUGH_PCT","RISK_TIER","FUNDED_VOLUME_USD"],
             ).properties(height=280)
         )
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(chart, use_container_width=True, theme=None)
 
 cC, cD = st.columns(2)
 with cC:
@@ -567,7 +568,7 @@ with cC:
             tooltip=["STAGE","AVG_DAYS","EVENTS"],
         ).properties(height=280)
     )
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True, theme=None)
 
 with cD:
     st.markdown("#### Social-flag Trend (30d)")
@@ -580,7 +581,7 @@ with cD:
             tooltip=["D","HIGH_N","TOTAL_N"],
         ).properties(height=280)
     )
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True, theme=None)
 
 # ============================================================
 # 6) TPO REPORT CARD
